@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String?
+  image         String?   // Foto profil
+  
+  // Data kumulatif
+  totalPoints    Int       @default(0)
+  
+  // Relasi: Semua kuis yang DIBUAT oleh user ini
+  myQuizzes      Quiz[]    @relation("UserQuizzes")
+
+  // Relasi: Catatan tiap kali user MENGERJAKAN kuis (baik kuis sendiri atau orang lain)
+  myAttempts     QuizAttempt[]
+
+  createdAt     DateTime  @default(now())
+}
+
+model Quiz {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  source      Source   @default(MANUAL) // Menandai apakah kuis ini buatan manual atau AI
+  
+  authorId    String
+  author      User     @relation("UserQuizzes", fields: [authorId], references: [id])
+  
+  questions   QuizQuestion[]
+  attempts    QuizAttempt[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model QuizQuestion {
+  id            String   @id @default(cuid())
+  question      String
+  type          QuizType
+  options       String[] // Array untuk pilihan ganda
+  correctAnswer String
+  
+  quizId        String
+  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+}
+
+enum QuizType {
+  MULTIPLE_CHOICE
+  ESSAY
+}
+
+enum Source {
+  MANUAL
+  AI_GENERATED
+}
+
+model QuizAttempt {
+  id        String   @id @default(cuid())
+  score     Int
+  answers   Json     // Menyimpan array jawaban user untuk setiap question
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  quizId    String
+  quiz      Quiz     @relation(fields: [quizId], references: [id])
+  
+  createdAt DateTime @default(now())
+}
